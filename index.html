@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Scan & Meditate</title>
+
+    <style>
+      :root {
+        --accent: #61988c;
+        --halo: #fefefe;
+        --halo-glow1: rgba(250, 251, 250, 0.9);
+        --halo-glow2: rgba(250, 251, 250, 0.6);
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-weight: 100;
+        letter-spacing: 0.05em;
+      }
+
+      #bgVideo {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+      }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+        transition: opacity 10s linear;
+      }
+
+      .halo-mover {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.7);
+        transition: transform 4s ease-in-out;
+      }
+
+      .halo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        border: 3px solid var(--halo);
+        box-shadow: 0 0 40px var(--halo-glow1), 0 0 140px var(--halo-glow2);
+      }
+
+      .h1 {
+        width: 52vmin;
+        height: 52vmin;
+      }
+      .h2 {
+        width: 64vmin;
+        height: 64vmin;
+      }
+      .h3 {
+        width: 76vmin;
+        height: 76vmin;
+      }
+
+      .text {
+        position: fixed;
+        bottom: 11%;
+        width: 100%;
+        text-align: center;
+        font-size: 28px;
+        color: var(--halo);
+        opacity: 0;
+        z-index: 3;
+        transition: opacity 6s ease;
+      }
+
+      .end-message {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: white;
+        opacity: 0;
+        z-index: 6;
+        transition: opacity 2s ease;
+      }
+
+      .countdown {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 110px;
+        color: white;
+        z-index: 5;
+        opacity: 0;
+      }
+
+      .start {
+        position: fixed;
+        inset: 0;
+        background: url("./blauw.png") center/cover;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 80px;
+        text-align: center;
+        z-index: 10;
+        color: white;
+      }
+
+      .start h1 {
+        font-size: 28px;
+        font-weight: 200;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+
+      .start p {
+        font-size: 16px;
+        max-width: 320px;
+        line-height: 1.5em;
+        margin-bottom: 50px;
+      }
+
+      .start button {
+        padding: 16px 40px;
+        border-radius: 40px;
+        border: none;
+        background: white;
+        color: var(--accent);
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .sound-toggle {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        z-index: 20;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .stop-btn {
+        position: fixed;
+        top: 22px;
+        left: 18px;
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        background: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 20;
+        cursor: pointer;
+        transition: opacity 0.4s ease, background 0.4s ease;
+      }
+
+      .stop-btn:hover {
+        background: rgba(255, 255, 255, 0.85);
+      }
+
+      .timer {
+        position: fixed;
+        top: 28px;
+        left: 113px;
+        font-size: 16px;
+        color: white;
+        opacity: 0;
+        z-index: 20;
+      }
+
+      .questions {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        font-size: 18px;
+        z-index: 15;
+        opacity: 0;
+        transition: opacity 1s ease;
+        pointer-events: none;
+      }
+
+      .questions h2 {
+        margin-bottom: 10px;
+      }
+
+      .question-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .question-group label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+
+      .question-group input[type="radio"] {
+        cursor: pointer;
+      }
+
+      /* Horizontale layout voor rating buttons */
+      .rating-options {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 5px;
+      }
+
+      #submitQuestions {
+        margin-top: 20px;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 30px;
+        background: white;
+        color: var(--accent);
+        font-size: 16px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="bgVideo" autoplay muted loop playsinline>
+      <source src="Gradient_4K_1%.mp4" type="video/mp4" />
+    </video>
+
+    <audio id="audio" src="muziek.mp3" loop></audio>
+
+    <div class="stop-btn" id="stopBtn">Stop</div>
+    <div class="timer" id="timer">3:00</div>
+    <div class="sound-toggle" id="soundBtn">🔊</div>
+
+    <div class="overlay" id="overlay">
+      <div class="halo-mover" id="haloMover">
+        <div class="halo h3"></div>
+        <div class="halo h2"></div>
+        <div class="halo h1"></div>
+      </div>
+    </div>
+
+    <div class="countdown" id="countdown">3</div>
+    <div class="text" id="text">INHALE</div>
+    <div class="end-message" id="endMessage">Well done</div>
+
+    <div class="questions" id="questions">
+      <h2>Quick Feedback</h2>
+
+      <div class="question-group">
+        <p>Was this session helpful?</p>
+        <label><input type="radio" name="helpful" value="Yes" /> Yes</label>
+        <label><input type="radio" name="helpful" value="No" /> No</label>
+      </div>
+
+      <div class="question-group">
+        <p>Would you do this session again?</p>
+        <label><input type="radio" name="repeat" value="Yes" /> Yes</label>
+        <label><input type="radio" name="repeat" value="No" /> No</label>
+      </div>
+
+      <div class="question-group">
+        <p>Rate this session (1-5)</p>
+        <div class="rating-options">
+          <label><input type="radio" name="rating" value="1" /> 1</label>
+          <label><input type="radio" name="rating" value="2" /> 2</label>
+          <label><input type="radio" name="rating" value="3" /> 3</label>
+          <label><input type="radio" name="rating" value="4" /> 4</label>
+          <label><input type="radio" name="rating" value="5" /> 5</label>
+        </div>
+      </div>
+
+      <button id="submitQuestions">Submit</button>
+    </div>
+
+    <div class="start" id="startScreen">
+      <h1>START YOUR BREATHING EXERCISE</h1>
+      <p>
+        Follow the rhythm of the halo and your breath. This session lasts 3
+        minutes.
+      </p>
+      <button id="startBtn">START</button>
+    </div>
+
+    <script>
+      const haloMover = document.getElementById("haloMover");
+      const overlay = document.getElementById("overlay");
+      const text = document.getElementById("text");
+      const countdown = document.getElementById("countdown");
+      const audio = document.getElementById("audio");
+      const soundBtn = document.getElementById("soundBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const timerEl = document.getElementById("timer");
+      const startScreen = document.getElementById("startScreen");
+      const endMessage = document.getElementById("endMessage");
+      const questions = document.getElementById("questions");
+      const submitQuestions = document.getElementById("submitQuestions");
+
+      const TOTAL_TIME = 180;
+      const FADE_TIME = 10;
+      const phases = [
+        { l: "INHALE", s: 1.12 },
+        { l: "HOLD", s: 1.12 },
+        { l: "EXHALE", s: 0.7 },
+        { l: "HOLD", s: 0.7 },
+      ];
+
+      let i = 0;
+      let breatheInterval;
+      let timerInterval;
+      let remaining = TOTAL_TIME;
+
+      function breathe() {
+        text.textContent = phases[i].l;
+        haloMover.style.transform = `translate(-50%, -50%) scale(${phases[i].s})`;
+        i = (i + 1) % phases.length;
+      }
+
+      function updateTimer() {
+        remaining--;
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        timerEl.textContent = `${m}:${s.toString().padStart(2, "0")}`;
+
+        if (remaining === FADE_TIME) {
+          overlay.style.opacity = 0.3;
+          text.style.opacity = 0;
+
+          const fade = setInterval(() => {
+            audio.volume = Math.max(0, audio.volume - 0.1);
+            if (audio.volume === 0) clearInterval(fade);
+          }, 1000);
+        }
+
+        if (remaining <= 0) endSession();
+      }
+
+      function endSession() {
+        clearInterval(breatheInterval);
+        clearInterval(timerInterval);
+        timerEl.style.opacity = 0;
+        soundBtn.style.opacity = 0;
+        stopBtn.style.opacity = 0;
+
+        endMessage.style.opacity = 1;
+
+        setTimeout(() => {
+          endMessage.style.opacity = 0;
+          showQuestions();
+        }, 2000);
+      }
+
+      function showQuestions() {
+        questions.style.opacity = 1;
+        questions.style.pointerEvents = "auto";
+      }
+
+      function stopEarly() {
+        clearInterval(breatheInterval);
+        clearInterval(timerInterval);
+
+        // Stop visuals
+        timerEl.style.opacity = 0;
+        soundBtn.style.opacity = 0;
+        stopBtn.style.opacity = 0;
+
+        // Stop audio
+        audio.pause();
+        audio.currentTime = 0;
+
+        // Show message
+        endMessage.style.opacity = 1;
+
+        setTimeout(() => {
+          endMessage.style.opacity = 0;
+          showQuestions();
+        }, 1000);
+      }
+
+      function goHome() {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 1;
+
+        overlay.style.opacity = 1;
+        text.style.opacity = 0;
+
+        questions.style.opacity = 0;
+        questions.style.pointerEvents = "none";
+
+        startScreen.style.display = "flex";
+      }
+
+      function startCountdown() {
+        let c = 3;
+        countdown.style.opacity = 1;
+        countdown.textContent = c;
+
+        const t = setInterval(() => {
+          c--;
+          if (c === 0) {
+            clearInterval(t);
+            countdown.style.opacity = 0;
+
+            audio.play().catch(() => {});
+            soundBtn.style.opacity = 1;
+            stopBtn.style.opacity = 1;
+            timerEl.style.opacity = 1;
+
+            soundBtn.style.pointerEvents = "auto";
+            stopBtn.style.pointerEvents = "auto";
+
+            text.style.opacity = 1;
+
+            remaining = TOTAL_TIME;
+            timerEl.textContent = "3:00";
+
+            breathe();
+            breatheInterval = setInterval(breathe, 4000);
+            timerInterval = setInterval(updateTimer, 1000);
+          } else {
+            countdown.textContent = c;
+          }
+        }, 1000);
+      }
+
+      document.getElementById("startBtn").onclick = () => {
+        startScreen.style.display = "none";
+        startCountdown();
+      };
+
+      stopBtn.onclick = stopEarly;
+
+      soundBtn.onclick = () => {
+        if (audio.paused) {
+          audio.play();
+          soundBtn.textContent = "🔊";
+        } else {
+          audio.pause();
+          soundBtn.textContent = "🔇";
+        }
+      };
+
+      submitQuestions.onclick = () => {
+        const helpful = document.querySelector(
+          'input[name="helpful"]:checked'
+        )?.value;
+        const repeat = document.querySelector(
+          'input[name="repeat"]:checked'
+        )?.value;
+        const rating = document.querySelector(
+          'input[name="rating"]:checked'
+        )?.value;
+
+        if (!helpful || !repeat || !rating) {
+          alert("Please answer all questions.");
+          return;
+        }
+
+        // Google Form fetch met juiste IDs
+        fetch(
+          "https://docs.google.com/forms/d/e/1FAIpQLSc24zqNavHaI_LJBkKhq1CJO5C43ZmzAI4LHuGebXpqbQXOqQ/formResponse",
+          {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `entry.312130573=${helpful}&entry.1121074583=${repeat}&entry.1706701244=${rating}`,
+          }
+        ).catch((err) => console.log(err));
+
+        questions.style.opacity = 0;
+        questions.style.pointerEvents = "none";
+
+        goHome();
+      };
+    </script>
+  </body>
+</html>
